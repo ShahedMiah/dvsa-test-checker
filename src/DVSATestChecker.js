@@ -1,7 +1,6 @@
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const AdblockerPlugin = require('puppeteer-extra-plugin-adblocker');
-const defaultBrowser = require('default-browser');
 
 puppeteer.use(StealthPlugin());
 puppeteer.use(AdblockerPlugin({ blockTrackers: true }));
@@ -14,8 +13,9 @@ class DVSATestChecker {
   }
 
   async initialize() {
-    // Get default browser info
-    const browserInfo = await defaultBrowser();
+    // Get default browser info using dynamic import
+    const defaultBrowser = await import('default-browser');
+    const browserInfo = await defaultBrowser.default();
     
     // Map browser names to their typical executable paths
     const browserPaths = {
