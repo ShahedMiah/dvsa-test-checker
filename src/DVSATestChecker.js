@@ -52,8 +52,10 @@ class DVSATestChecker {
 
       // Click the submit button
       console.log('Submitting form...');
-      await this.page.click('button[type="submit"]');
-      await this.page.waitForNavigation({ waitUntil: 'networkidle0' });
+      await Promise.all([
+        this.page.waitForNavigation({ waitUntil: 'networkidle0' }),
+        this.page.click('input[type="submit"]')
+      ]);
 
       // Check for various error message selectors that might be present
       const possibleErrorSelectors = ['.error-message', '.error-summary', '.alert-message'];
