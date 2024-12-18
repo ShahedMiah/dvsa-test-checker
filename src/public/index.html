@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DVSA Test Checker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="min-h-screen flex items-center justify-center">
+        <div class="bg-white p-8 rounded-lg shadow-md w-96">
+            <h1 class="text-2xl font-bold mb-6 text-center">DVSA Test Checker</h1>
+            <form id="testForm" class="space-y-4">
+                <div>
+                    <label for="license" class="block text-sm font-medium text-gray-700">Driving License Number</label>
+                    <input type="text" id="license" name="licenseNumber" required
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="Enter your license number">
+                </div>
+                <div>
+                    <label for="certificate" class="block text-sm font-medium text-gray-700">Certificate Number</label>
+                    <input type="text" id="certificate" name="certificateNumber" required
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="Enter your certificate number">
+                </div>
+                <button type="submit"
+                    class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    Check Available Tests
+                </button>
+            </form>
+            <div id="results" class="mt-6 hidden">
+                <h2 class="text-lg font-semibold mb-2">Available Tests:</h2>
+                <div id="testsList" class="space-y-2"></div>
+            </div>
+            <div id="error" class="mt-4 text-red-600 hidden"></div>
+            <div id="loading" class="mt-4 text-center hidden">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p class="mt-2 text-gray-600">Searching for available tests...</p>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.getElementById('testForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const form = e.target;
+            const results = document.getElementById('results');
+            const error = document.getElementById('error');
+            const loading = document.getElementById('loading');
+            const testsList = document.getElementById('testsList');
+            
+            // Reset previous state
+            results.classList.add('hidden');
+            error.classList.add('hidden');
+            loading.classList.remove('hidden');
+
+            try {
+                const response = await fetch('/api/check-tests', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        licenseNumber: form.licenseNumber.value,
+                        certificateNumber: form.certificateNumber.value,
+                    }),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to check for tests');
+                }
+
+                if (data.tests && data.tests.length > 0) {
+                    testsList.innerHTML = data.tests.map(test => `
+                        <div class="p-3 bg-gray-50 rounded-md">
+                            <p class="font-medium">${test.date} at ${test.time}</p>
+                            <p class="text-sm text-gray-600">${test.location}</p>
+                        </div>
+                    `).join('');
+                    results.classList.remove('hidden');
+                } else {
+                    testsList.innerHTML = '<p class="text-gray-600">No tests currently available.</p>';
+                    results.classList.remove('hidden');
+                }
+            } catch (err) {
+                error.textContent = err.message;
+                error.classList.remove('hidden');
+            } finally {
+                loading.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
