@@ -27,20 +27,28 @@ class DVSATestChecker {
 
   async searchForTests(licenseNumber, certificateNumber) {
     try {
+      console.log('Navigating to DVSA login page...');
       await this.page.goto(this.baseUrl, { waitUntil: 'networkidle0' });
       await this.randomDelay();
 
-      await this.page.waitForSelector('#driving-licence-number');
-      await this.page.type('#driving-licence-number', licenseNumber, { delay: 100 });
+      // Wait for and fill in the license number field
+      console.log('Looking for driving licence input...');
+      await this.page.waitForSelector('#drivinglicence');
+      await this.page.type('#drivinglicence', licenseNumber, { delay: 100 });
       await this.randomDelay();
 
-      await this.page.waitForSelector('#test-ref-number');
-      await this.page.type('#test-ref-number', certificateNumber, { delay: 100 });
+      // Wait for and fill in the reference number field
+      console.log('Looking for reference number input...');
+      await this.page.waitForSelector('#ref-number');
+      await this.page.type('#ref-number', certificateNumber, { delay: 100 });
       await this.randomDelay();
 
+      // Click the submit button
+      console.log('Looking for submit button...');
       await this.page.click('button[type="submit"]');
       await this.page.waitForNavigation({ waitUntil: 'networkidle0' });
 
+      // Check for error messages
       const errorMessage = await this.page.$eval('.error-message', 
         el => el.textContent.trim()
       ).catch(() => null);
@@ -49,12 +57,14 @@ class DVSATestChecker {
         throw new Error(errorMessage);
       }
 
+      // Extract available test dates and times
+      console.log('Looking for available test slots...');
       const availableTests = await this.page.evaluate(() => {
-        const slots = document.querySelectorAll('.slot-list-item');
+        const slots = document.querySelectorAll('.SlotPicker-slot');
         return Array.from(slots).map(slot => ({
-          date: slot.querySelector('.date')?.textContent.trim(),
-          time: slot.querySelector('.time')?.textContent.trim(),
-          location: slot.querySelector('.test-centre')?.textContent.trim()
+          date: slot.querySelector('.SlotPicker-day')?.textContent.trim(),
+          time: slot.querySelector('.SlotPicker-time')?.textContent.trim(),
+          location: document.querySelector('.test-centre-name')?.textContent.trim() || 'Unknown Location'
         }));
       });
 
