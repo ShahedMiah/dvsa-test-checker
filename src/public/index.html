@@ -39,6 +39,12 @@
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                         placeholder="Enter your theory test number">
                 </div>
+                <div>
+                    <label for="location" class="block text-sm font-medium text-gray-700">Test Centre Location</label>
+                    <input type="text" id="location" name="location" required
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="Enter postcode or town">
+                </div>
                 <button type="submit"
                     class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                     Check Available Tests
@@ -46,13 +52,14 @@
             </form>
             
             <div id="results" class="mt-6 hidden">
-                <h2 class="text-lg font-semibold mb-2">Available Tests:</h2>
+                <h2 class="text-lg font-semibold mb-2">Available Test Centres:</h2>
                 <div id="testsList" class="space-y-2"></div>
             </div>
             <div id="error" class="mt-4 text-red-600 hidden"></div>
             <div id="loading" class="mt-4 text-center hidden">
                 <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
                 <p class="mt-2 text-gray-600">Searching for available tests...</p>
+                <p class="mt-2 text-sm text-gray-500">Please complete any CAPTCHA if prompted</p>
             </div>
         </div>
     </div>
@@ -108,6 +115,7 @@
                     body: JSON.stringify({
                         licenseNumber: form.licenseNumber.value,
                         secondNumber: form.secondNumber.value,
+                        location: form.location.value,
                         isTheoryNumber: isTheoryNumber
                     }),
                 });
@@ -121,13 +129,16 @@
                 if (data.tests && data.tests.length > 0) {
                     testsList.innerHTML = data.tests.map(test => `
                         <div class="p-3 bg-gray-50 rounded-md">
-                            <p class="font-medium">${test.date} at ${test.time}</p>
-                            <p class="text-sm text-gray-600">${test.location}</p>
+                            <p class="font-medium">${test.name}</p>
+                            <p class="text-sm text-gray-600">${test.address}</p>
+                            <p class="text-sm ${test.hasTests ? 'text-green-600 font-medium' : 'text-red-600'}">
+                                ${test.availability || (test.hasTests ? 'Tests available' : 'No tests available')}
+                            </p>
                         </div>
                     `).join('');
                     results.classList.remove('hidden');
                 } else {
-                    testsList.innerHTML = '<p class="text-gray-600">No tests currently available.</p>';
+                    testsList.innerHTML = '<p class="text-gray-600">No test centres found in this area.</p>';
                     results.classList.remove('hidden');
                 }
             } catch (err) {
