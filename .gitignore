@@ -1,1 +1,6 @@
-bm9kZV9tb2R1bGVzLwouZW52Ci5EU19TdG9yZQpucG0tZGVidWcubG9nKgp5YXJuLWRlYnVnLmxvZyoKeWFybi1lcnJvci5sb2cq
+node_modules/
+.env
+.DS_Store
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
