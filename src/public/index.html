@@ -10,24 +10,41 @@
     <div class="min-h-screen flex items-center justify-center">
         <div class="bg-white p-8 rounded-lg shadow-md w-96">
             <h1 class="text-2xl font-bold mb-6 text-center">DVSA Test Checker</h1>
+            
+            <div class="mb-6">
+                <div class="flex space-x-4">
+                    <button id="theoryBtn" 
+                            class="flex-1 py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active">
+                        Theory Number
+                    </button>
+                    <button id="referenceBtn" 
+                            class="flex-1 py-2 px-4 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+                        Reference Number
+                    </button>
+                </div>
+            </div>
+
             <form id="testForm" class="space-y-4">
                 <div>
                     <label for="license" class="block text-sm font-medium text-gray-700">Driving License Number</label>
-                    <input type="text" id="license" name="licenseNumber" required
+                    <input type="text" id="license" name="licenseNumber" required maxlength="16"
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                         placeholder="Enter your license number">
                 </div>
                 <div>
-                    <label for="certificate" class="block text-sm font-medium text-gray-700">Certificate Number</label>
-                    <input type="text" id="certificate" name="certificateNumber" required
+                    <label id="secondNumberLabel" for="secondNumber" class="block text-sm font-medium text-gray-700">
+                        Theory Test Pass Number
+                    </label>
+                    <input type="text" id="secondNumber" name="secondNumber" required
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                        placeholder="Enter your certificate number">
+                        placeholder="Enter your theory test number">
                 </div>
                 <button type="submit"
                     class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                     Check Available Tests
                 </button>
             </form>
+            
             <div id="results" class="mt-6 hidden">
                 <h2 class="text-lg font-semibold mb-2">Available Tests:</h2>
                 <div id="testsList" class="space-y-2"></div>
@@ -40,6 +57,34 @@
         </div>
     </div>
     <script>
+        let isTheoryNumber = true;
+        const theoryBtn = document.getElementById('theoryBtn');
+        const referenceBtn = document.getElementById('referenceBtn');
+        const secondNumberLabel = document.getElementById('secondNumberLabel');
+        const secondNumberInput = document.getElementById('secondNumber');
+
+        theoryBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            isTheoryNumber = true;
+            theoryBtn.classList.remove('bg-gray-200', 'text-gray-700');
+            theoryBtn.classList.add('bg-blue-600', 'text-white');
+            referenceBtn.classList.remove('bg-blue-600', 'text-white');
+            referenceBtn.classList.add('bg-gray-200', 'text-gray-700');
+            secondNumberLabel.textContent = 'Theory Test Pass Number';
+            secondNumberInput.placeholder = 'Enter your theory test number';
+        });
+
+        referenceBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            isTheoryNumber = false;
+            referenceBtn.classList.remove('bg-gray-200', 'text-gray-700');
+            referenceBtn.classList.add('bg-blue-600', 'text-white');
+            theoryBtn.classList.remove('bg-blue-600', 'text-white');
+            theoryBtn.classList.add('bg-gray-200', 'text-gray-700');
+            secondNumberLabel.textContent = 'Test Reference Number';
+            secondNumberInput.placeholder = 'Enter your test reference number';
+        });
+
         document.getElementById('testForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -49,7 +94,6 @@
             const loading = document.getElementById('loading');
             const testsList = document.getElementById('testsList');
             
-            // Reset previous state
             results.classList.add('hidden');
             error.classList.add('hidden');
             loading.classList.remove('hidden');
@@ -62,7 +106,8 @@
                     },
                     body: JSON.stringify({
                         licenseNumber: form.licenseNumber.value,
-                        certificateNumber: form.certificateNumber.value,
+                        secondNumber: form.secondNumber.value,
+                        isTheoryNumber: isTheoryNumber
                     }),
                 });
 
