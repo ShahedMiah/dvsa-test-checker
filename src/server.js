@@ -28,12 +28,12 @@ app.get('/', (req, res) => {
 
 // API Routes
 app.post('/api/check-tests', async (req, res) => {
-  const { licenseNumber, secondNumber, isTheoryNumber } = req.body;
+  const { licenseNumber, secondNumber, location, isTheoryNumber } = req.body;
 
-  if (!licenseNumber || !secondNumber) {
+  if (!licenseNumber || !secondNumber || !location) {
     return res.status(400).json({
       success: false,
-      error: 'License number and Theory Test/Reference number are required'
+      error: 'License number, Theory Test/Reference number, and location are required'
     });
   }
 
@@ -41,9 +41,10 @@ app.post('/api/check-tests', async (req, res) => {
   
   try {
     await checker.initialize();
-    const results = await checker.searchForTests(licenseNumber, secondNumber, isTheoryNumber);
+    const results = await checker.searchForTests(licenseNumber, secondNumber, location, isTheoryNumber);
     res.json({ success: true, tests: results });
   } catch (error) {
+    console.error('Error in /api/check-tests:', error);
     res.status(500).json({ success: false, error: error.message });
   } finally {
     await checker.close();
