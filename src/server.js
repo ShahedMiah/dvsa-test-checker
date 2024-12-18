@@ -33,7 +33,7 @@ app.post('/api/check-tests', async (req, res) => {
   if (!licenseNumber || !secondNumber) {
     return res.status(400).json({
       success: false,
-      error: 'All fields are required'
+      error: 'License number and Theory Test/Reference number are required'
     });
   }
 
