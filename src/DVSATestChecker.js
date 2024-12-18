@@ -1,6 +1,7 @@
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const AdblockerPlugin = require('puppeteer-extra-plugin-adblocker');
+const defaultBrowser = require('default-browser');
 
 puppeteer.use(StealthPlugin());
 puppeteer.use(AdblockerPlugin({ blockTrackers: true }));
@@ -13,8 +14,34 @@ class DVSATestChecker {
   }
 
   async initialize() {
+    // Get default browser info
+    const browserInfo = await defaultBrowser();
+    
+    // Map browser names to their typical executable paths
+    const browserPaths = {
+      'brave': process.platform === 'win32'
+        ? 'C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe'
+        : process.platform === 'darwin'
+          ? '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser'
+          : '/usr/bin/brave-browser',
+      'chrome': process.platform === 'win32'
+        ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+        : process.platform === 'darwin'
+          ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+          : '/usr/bin/google-chrome',
+      'firefox': process.platform === 'win32'
+        ? 'C:\\Program Files\\Mozilla Firefox\\firefox.exe'
+        : process.platform === 'darwin'
+          ? '/Applications/Firefox.app/Contents/MacOS/firefox'
+          : '/usr/bin/firefox'
+    };
+
+    const executablePath = process.env.BROWSER_PATH || browserPaths[browserInfo.name] || undefined;
+    console.log(`Using browser: ${browserInfo.name} at path: ${executablePath || 'default'}`);
+
     this.browser = await puppeteer.launch({
       headless: false,
+      executablePath,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
