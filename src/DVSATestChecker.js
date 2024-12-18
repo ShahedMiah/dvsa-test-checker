@@ -9,7 +9,7 @@ class DVSATestChecker {
 
   async initialize() {
     this.browser = await puppeteer.launch({
-      headless: 'new',
+      headless: false, // Changed to false so we can see what's happening and handle CAPTCHA
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -22,84 +22,87 @@ class DVSATestChecker {
     });
     this.page = await this.browser.newPage();
     await this.page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-    await this.page.setDefaultNavigationTimeout(30000);
+    await this.page.setDefaultNavigationTimeout(60000); // Increased timeout for manual CAPTCHA
   }
 
-  async searchForTests(licenseNumber, secondNumber, isTheoryNumber = true) {
+  async searchForTests(licenseNumber, secondNumber, location, isTheoryNumber = true) {
     try {
       console.log('Navigating to DVSA login page...');
       await this.page.goto(this.baseUrl, { waitUntil: 'networkidle0' });
       await this.randomDelay();
 
-      // Wait for and fill in the license number field
+      // Fill in the login form
       console.log('Entering driving licence number...');
       await this.page.waitForSelector('#driving-licence-number');
       await this.page.type('#driving-licence-number', licenseNumber, { delay: 100 });
       await this.randomDelay();
 
       if (isTheoryNumber) {
-        // Using Theory Test Pass Number
         console.log('Entering theory test pass number...');
         await this.page.waitForSelector('#theory-test-pass-number');
         await this.page.type('#theory-test-pass-number', secondNumber, { delay: 100 });
       } else {
-        // Using Test Reference Number
         console.log('Entering test reference number...');
         await this.page.waitForSelector('#application-reference-number');
         await this.page.type('#application-reference-number', secondNumber, { delay: 100 });
       }
       await this.randomDelay();
 
-      // Click the submit button
+      // Submit the form
       console.log('Submitting form...');
       await Promise.all([
         this.page.waitForNavigation({ waitUntil: 'networkidle0' }),
         this.page.click('input[type="submit"]')
       ]);
 
-      // Check for various error message selectors that might be present
-      const possibleErrorSelectors = ['.error-message', '.error-summary', '.alert-message'];
-      for (const selector of possibleErrorSelectors) {
-        const errorElement = await this.page.$(selector);
-        if (errorElement) {
-          const errorMessage = await this.page.evaluate(el => el.textContent.trim(), errorElement);
-          if (errorMessage) {
-            throw new Error(errorMessage);
-          }
+      // Wait for manual CAPTCHA completion if needed
+      console.log('Waiting for potential CAPTCHA and navigation...');
+      await this.page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 60000 });
+
+      // Look for the change test centre button
+      console.log('Looking for change test centre button...');
+      await this.page.waitForSelector('a[href*="change-test-centre"], button:contains("Change test centre")');
+      await this.page.click('a[href*="change-test-centre"], button:contains("Change test centre")');
+      await this.randomDelay();
+
+      // Enter location in search
+      console.log('Searching for test centres near:', location);
+      await this.page.waitForSelector('input[type="text"][name*="searchQuery"]');
+      await this.page.type('input[type="text"][name*="searchQuery"]', location, { delay: 100 });
+      await this.page.keyboard.press('Enter');
+      await this.randomDelay();
+
+      // Keep clicking 'Show more' until no more results or max attempts reached
+      console.log('Loading all test centres...');
+      let showMoreVisible = true;
+      let attempts = 0;
+      const maxAttempts = 10;
+
+      while (showMoreVisible && attempts < maxAttempts) {
+        try {
+          await this.page.waitForSelector('button:contains("Show more")', { timeout: 5000 });
+          await this.page.click('button:contains("Show more")');
+          await this.randomDelay();
+          attempts++;
+        } catch (e) {
+          showMoreVisible = false;
         }
       }
 
-      // Extract available test dates and times
-      console.log('Looking for available test slots...');
+      // Extract available test dates and times for all centres
+      console.log('Extracting available test slots...');
       const availableTests = await this.page.evaluate(() => {
-        // Add multiple possible selectors for test slots
-        const slotSelectors = ['.SlotPicker-slot', '.slot-list-item', '.test-slot'];
-        let slots = [];
-        
-        for (const selector of slotSelectors) {
-          const elements = document.querySelectorAll(selector);
-          if (elements.length > 0) {
-            slots = Array.from(elements);
-            break;
-          }
-        }
-
-        return slots.map(slot => {
-          // Try multiple possible selectors for date/time/location
-          const getContent = (selectors) => {
-            for (const selector of selectors) {
-              const element = slot.querySelector(selector);
-              if (element) {
-                return element.textContent.trim();
-              }
-            }
-            return null;
-          };
-
+        const centres = document.querySelectorAll('.test-centre-results-item');
+        return Array.from(centres).map(centre => {
+          const name = centre.querySelector('.test-centre-name')?.textContent.trim();
+          const address = centre.querySelector('.test-centre-address')?.textContent.trim();
+          const availability = centre.querySelector('.test-centre-availability')?.textContent.trim();
+          
           return {
-            date: getContent(['.SlotPicker-day', '.date', '.test-date']) || 'Date not found',
-            time: getContent(['.SlotPicker-time', '.time', '.test-time']) || 'Time not found',
-            location: getContent(['.test-centre-name', '.location', '.test-center']) || 'Location not found'
+            name,
+            address,
+            availability,
+            hasTests: !centre.textContent.includes('No tests available')
           };
         });
       });
